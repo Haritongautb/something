@@ -2,37 +2,55 @@ import { useHttp } from '../../hooks/http.hook';
 import { useEffect, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { CSSTransition, TransitionGroup } from 'react-transition-group';
+// в redux-toolkit тоже есть включенный плагин reselect
+// import { createSelector } from 'reselect';
+// в redux-toolkit тоже есть включенный плагин reselect
+// import { createSelector } from "@reduxjs/toolkit";
 
-import { heroesFetching, heroesFetched, heroesFetchingError, heroDeleted } from '../../actions';
+// import { fetchHeroes } from '../../actions';
+import { heroDeleted, fetchHeroes, filteredHeroesSelector } from './heroesSlice';
 import HeroesListItem from "../heroesListItem/HeroesListItem";
 import Spinner from '../spinner/Spinner';
-
 import './heroesList.scss';
-
-// Задача для этого компонента:
-// При клике на "крестик" идет удаление персонажа из общего состояния
-// Усложненная задача:
-// Удаление идет и с json файла при помощи метода DELETE
-
 const HeroesList = () => {
-    const filteredHeroes = useSelector(state => {
-        console.log("HeroesList")
-        if (state.activeFilter === "all") {
-            return state.heroes;
-        } else {
-            return state.heroes.filter(item => item.element === state.activeFilter)
-        }
-    })
-    const heroesLoadingStatus = useSelector(state => state.heroesLoadingStatus);
+    // create Selector вместо useSelector, чтобы при изменении свойство другого компонента, не пересоздавалась функция с const filteredHeroes = useSelector();
+    // короче говоря, при каждом клике на фильтры даже если на один и тот же фильтр будет происходить проверка (сработает это - console.log("filteredHeroes") и const filteredHeroes = useSelector будет проверять и функция получается снова вызывается. createSelector дает нам возможность этого избежать, если state.filters.activeFilter не изменится, то она не будет вызывать перерендер компонента. В createSelector работает Мемоизация
+    // Если писать как обычно это, то постоянно при клике на один и тот же фильтр будет заново вызываться filteredHeroes и компонент заново перерисовываться
+    // const filteredHeroes = useSelector(state => {
+    //     console.log("filteredHeroes")
+    //     if (state.filters.activeFilter === "all") {
+    //         return state.heroes.heroes;
+    //     } else {
+    //         return state.heroes.heroes.filter(item => item.element === state.filters.activeFilter)
+    //     }
+    // })
+    /*     const filteredHeroesSelector = createSelector(
+            // Первый аргумент
+            (state) => state.filters.activeFilter,
+            // Второй аргумент
+            selectAll,
+            // Первый аргумент, Второй аргумент
+            (filter, heroes) => {
+                if (filter === "all") {
+                    return heroes;
+                } else {
+                    return heroes.filter(item => item.element === filter)
+                }
+            }
+        ); */
+    const filteredHeroes = useSelector(filteredHeroesSelector);
+    const heroesLoadingStatus = useSelector(state => state.heroes.heroesLoadingStatus);
     const dispatch = useDispatch();
     // Работает замыкание. То есть теперь у компонента, у которого есть request - это его собественный request, потому что сработало замыкание
     const { request } = useHttp();
 
     useEffect(() => {
-        dispatch(heroesFetching());
-        request("http://localhost:3001/heroes")
-            .then(data => dispatch(heroesFetched(data)))
-            .catch(() => dispatch(heroesFetchingError()))
+        // благодаря ReduxThrunk
+        // dispatch(fetchHeroes(request));
+
+        // С использованием reduxAsyncThunk
+        // request находится уже в heroesSlice
+        dispatch(fetchHeroes());
 
         // eslint-disable-next-line
     }, []);
